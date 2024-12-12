@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Rust WebAssembly Time Display</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+        #time-display {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+        #lunar-display {
+            margin-top: 10px;
+            font-size: 18px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <button id="time-button" disabled>Show Current Time</button>
+    <div id="time-display"></div>
+    <div id="lunar-display"></div>
+
+    <script>
+        let wasmModule;
+        
+        // Load the WebAssembly module
+        (async () => {
+            try {
+                const wasm = await import('./pkg/rust_webass_test1.js');
+                await wasm.default();
+                wasmModule = wasm;
+                
+                const button = document.getElementById('time-button');
+                
+                // Enable the button after WASM is loaded
+                button.disabled = false;
+                
+                // Start updating time
+                updateTime();
+                setInterval(updateTime, 1000);
+                
+            } catch (e) {
+                console.error('Error:', e);
+            }
+        })();
+
+        function updateTime() {
+            if (!wasmModule) return;
+
+            const display = document.getElementById('time-display');
+            const lunarDisplay = document.getElementById('lunar-display');
+            const now = new Date();
+            const time = now.toISOString().replace('Z', '+08:00');
+            display.textContent = `公历时间: ${time}`;
+
+            try {
+                const lunarInfo = JSON.parse(wasmModule.get_lunar_info(time));
+                lunarDisplay.textContent = `${lunarInfo.lunar_date} ${lunarInfo.zodiac_year}`;
+            } catch (e) {
+                console.error('Error getting lunar info:', e);
+            }
+        }
+    </script>
+</body>
+</html>
